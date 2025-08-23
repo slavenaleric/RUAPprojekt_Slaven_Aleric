@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="hr">
+<head>
+  <meta charset="utf-8" />
+  <title>NBA PTS predikcija 2024–25</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:24px;max-width:900px}
+    .card{border:1px solid #e5e7eb;border-radius:16px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.05)}
+    .row{display:flex;gap:12px;align-items:center}
+    input,button{font-size:16px;padding:10px 12px;border:1px solid #cbd5e1;border-radius:10px}
+    button{cursor:pointer}
+    #msg{margin-top:10px;color:#b91c1c}
+  </style>
+</head>
+<body>
+  <h1>NBA — predikcija PTS za 2024–25</h1>
+  <div class="card">
+    <div class="row">
+      <input id="q" list="players" placeholder="Upiši ime igrača (npr. LeBron James)" style="flex:1" />
+      <button id="go">Traži</button>
+    </div>
+    <div id="msg"></div>
+  </div>
+
+  
+
+  <div class="card" style="margin-top:16px">
+    <h3 id="title">Rezultat</h3>
+    <canvas id="chart" height="120"></canvas>
+    <p id="pred"></p>
+  </div>
+
+  <datalist id="players"></datalist>
+
+  <script>
+  const API = "https://nbaruap-azc3fghdh6gpahh3.northeurope-01.azurewebsites.net/api/predict"; 
+  async function loadPlayers(){
+    try{
+      const r = await fetch(`${API}?players=1`);
+      const list = await r.json();
+      players.innerHTML = list.map(n => `<option value="${n}">`).join('');
+    }catch(e){}
+  }
+
+  let chart;
+  function render(name, history, predVal){
+    const seasons = history.map(h => h.season);
+    const pts = history.map(h => h.pts);
+    seasons.push("2024-25");
+    pts.push(predVal);
+
+    title.textContent = name;
+    pred.textContent = `Predikcija PTS za 2024–25: ${predVal.toFixed(2)}`;
+
+    if(chart) chart.destroy();
+    chart = new Chart(document.getElementById('chart').getContext('2d'), {
+      type: 'line',
+      data: { labels: seasons, datasets: [{ label:'PTS', data: pts, borderWidth: 2, tension: .25, pointRadius: 3 }] },
+      options: { plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:false } } }
+    });
+  }
+
+  async function search(){
+    const name = q.value.trim();
+    msg.textContent = '';
+    if(!name){ msg.textContent = 'Upiši ime igrača.'; return; }
+    try{
+      const r = await fetch(`${API}?player=${encodeURIComponent(name)}`);
+      if(!r.ok) throw new Error(await r.text());
+      const data = await r.json();
+      if(!data || data.error) throw new Error(data?.error || 'Greška');
+      render(data.player, data.history||[], Number(data.prediction_pts_2024_25));
+    }catch(err){
+      msg.textContent = 'Nije pronađen igrač.';
+      console.error(err);
+    }
+  }
+
+  go.addEventListener('click', search);
+  q.addEventListener('keydown', e => { if(e.key==='Enter') search(); });
+  loadPlayers();
+  </script>
+</body>
+</html>

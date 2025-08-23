@@ -16,6 +16,7 @@
 </head>
 <body>
   <h1>NBA — predikcija PTS za 2024–25</h1>
+
   <div class="card">
     <div class="row">
       <input id="q" list="players" placeholder="Upiši ime igrača (npr. LeBron James)" style="flex:1" />
@@ -23,8 +24,6 @@
     </div>
     <div id="msg"></div>
   </div>
-
-  
 
   <div class="card" style="margin-top:16px">
     <h3 id="title">Rezultat</h3>
@@ -35,24 +34,27 @@
   <datalist id="players"></datalist>
 
   <script>
-  const API = "https://nbaruap-azc3fghdh6gpahh3.northeurope-01.azurewebsites.net/api/predict"; 
+  const API = "https://nbaruap-azc3fghdh6gpahh3.northeurope-01.azurewebsites.net/api/predict";
+
   async function loadPlayers(){
     try{
       const r = await fetch(`${API}?players=1`);
       const list = await r.json();
-      players.innerHTML = list.map(n => `<option value="${n}">`).join('');
-    }catch(e){}
+      players.innerHTML = Array.isArray(list) ? list.map(n => `<option value="${n}">`).join('') : '';
+    }catch(e){
+      // ignoriraj autocomplete greške
+    }
   }
 
   let chart;
   function render(name, history, predVal){
-    const seasons = history.map(h => h.season);
-    const pts = history.map(h => h.pts);
+    const seasons = (history || []).map(h => h.season);
+    const pts = (history || []).map(h => h.pts);
     seasons.push("2024-25");
     pts.push(predVal);
 
-    title.textContent = name;
-    pred.textContent = `Predikcija PTS za 2024–25: ${predVal.toFixed(2)}`;
+    title.textContent = name || 'Rezultat';
+    pred.textContent = `Predikcija PTS za 2024–25: ${Number(predVal).toFixed(2)}`;
 
     if(chart) chart.destroy();
     chart = new Chart(document.getElementById('chart').getContext('2d'), {
@@ -62,7 +64,7 @@
     });
   }
 
-async function search(){
+  async function search(){
     const name = q.value.trim();
     msg.textContent = '';
     if(!name){ msg.textContent = 'Upiši ime igrača.'; return; }
@@ -70,13 +72,13 @@ async function search(){
     try{
       const r = await fetch(`${API}?player=${encodeURIComponent(name)}`);
       if(!r.ok) throw new Error(await r.text());
-
       const data = await r.json();
       if (data.error) throw new Error(data.error);
 
-      // CLAMP NA KLIJENTU – samo za prikaz
-      let predVal = Number(data.prediction_pts_2024_25);
-      predVal = Math.max(0, Math.min(45, predVal));
+      // >>> PRIKAZ KAO POZITIVAN BROJ (npr. -11.9 -> 11.9)
+      let predVal = Math.abs(Number(data.prediction_pts_2024_25));
+      // (opcionalno) ograniči vrh radi grafa
+      predVal = Math.min(45, predVal);
 
       render(data.player, data.history || [], predVal);
     }catch(err){
@@ -91,5 +93,3 @@ async function search(){
   </script>
 </body>
 </html>
-
-

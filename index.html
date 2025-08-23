@@ -42,7 +42,6 @@
       const list = await r.json();
       players.innerHTML = Array.isArray(list) ? list.map(n => `<option value="${n}">`).join('') : '';
     }catch(e){
-      // ignoriraj autocomplete greške
     }
   }
 
@@ -75,10 +74,9 @@
       const data = await r.json();
       if (data.error) throw new Error(data.error);
 
-      // >>> PRIKAZ KAO POZITIVAN BROJ (npr. -11.9 -> 11.9)
       let predVal = Math.abs(Number(data.prediction_pts_2024_25));
-      // (opcionalno) ograniči vrh radi grafa
       predVal = Math.min(45, predVal);
+      predVal = Number(predVal.toFixed(1));
 
       render(data.player, data.history || [], predVal);
     }catch(err){
@@ -93,3 +91,4 @@
   </script>
 </body>
 </html>
+

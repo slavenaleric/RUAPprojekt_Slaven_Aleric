@@ -70,6 +70,10 @@
       const r = await fetch(`${API}?player=${encodeURIComponent(name)}`);
       if(!r.ok) throw new Error(await r.text());
       const data = await r.json();
+      let predVal = Number(data.prediction_pts_2024_25);
+      predVal = Math.max(0, Math.min(45, predVal));  
+      render(data.player, data.history, predVal);
+
       if(!data || data.error) throw new Error(data?.error || 'Greška');
       render(data.player, data.history||[], Number(data.prediction_pts_2024_25));
     }catch(err){
@@ -84,3 +88,4 @@
   </script>
 </body>
 </html>
+
